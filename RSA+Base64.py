@@ -2,12 +2,28 @@
 import os
 import rsa
 import base64
+import win32con
+import win32clipboard
 
 prefix_m = b'-----BEGIN RSA + BASE64 MESSAGE-----\n'
 suffix_m = b'\n-----END RSA + BASE64 MESSAGE-----\n'
 prefix_s = b'-----BEGIN Signature-----\n'
 suffix_s = b'\n-----END Signature-----'
 encryption_method = 'SHA-1'
+
+
+def get_text():
+    win32clipboard.OpenClipboard()
+    text = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
+    win32clipboard.CloseClipboard()
+    return text
+
+
+def set_text(text):
+    win32clipboard.OpenClipboard()
+    win32clipboard.EmptyClipboard()
+    win32clipboard.SetClipboardData(win32con.CF_OEMTEXT, text)
+    win32clipboard.CloseClipboard()
 
 
 def findpem():
@@ -68,7 +84,9 @@ while True:
 
         with open('result.rsa', 'wb') as resultfile:
             resultfile.write(ciphertext)
-        print('已将密文输出至 result.rsa')
+        ciphertext = ciphertext.decode()
+        set_text(ciphertext.encode('ascii'))
+        print('已将密文输出至 result.rsa和剪切板')
 
     else:
         for index in range(len(PublicKeyList)):
@@ -79,8 +97,13 @@ while True:
             p = thirdfile.read()
             third = rsa.PublicKey.load_pkcs1(p)
 
-        with open('result.rsa', 'r') as resultfile:
-            c = resultfile.read().split('\n')  # 按换行符分割
+        text = get_text()
+        temp = text.split('\n')
+        if len(temp) > 2:
+            c = temp
+        else:
+            with open('result.rsa', 'r') as resultfile:
+                c = resultfile.read().split('\n')  # 按换行符分割
         crypto = base64.b64decode(c[1])  # 主体部分
 
         try:
