@@ -117,7 +117,7 @@ def check_self_pem():  # 检查并生成
 check_self_pem()  # 先判断是否有公钥
 PublicKeyList = findpem()
 PublicKeyList.insert(0, {
-                'name': 'Your publickey',
+                'name': 'Yourself',
                 'path': './public.pem'
             })
 
