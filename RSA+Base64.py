@@ -95,7 +95,7 @@ def findpem():
     for filename in files:
         if filename.endswith(".pem"):
             path = "./PublicKey/" + filename
-            name = filename.rstrip(".pem")
+            name = os.path.splitext(filename)[0]
             keylist.append({
                 'name': name,
                 'path': path
