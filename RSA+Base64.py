@@ -71,6 +71,17 @@ def genkeys():
         f.write(_pubkey.save_pkcs1())
 
 
+def changepassword(_privkey):
+    key = input("请输入修改的密码，留空则删除密码>>>")
+    if len(key) > 0:
+        key = formatkey(key)
+        _privkey = aes_encrypt(key, _privkey).encode()
+    else:
+        _privkey = _privkey.save_pkcs1()
+    with open('private.pem', 'wb') as f:
+        f.write(_privkey)
+
+
 def get_text():
     win32clipboard.OpenClipboard()
     text = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
@@ -124,9 +135,12 @@ PublicKeyList.insert(0, {
 with open('private.pem', "rb") as privatefile:  # 加载自己的密钥
     p = privatefile.read()
     key = input('请输入密码，若没有请留空>>>')
+    os.system('cls')
     if len(key) > 0:
         key = formatkey(key)
         p = aes_decrypt(key, p)
+    if input('是否更改密码(Y/N)>>>').lower() == 'y':
+        changepassword(p)
     privkey = rsa.PrivateKey.load_pkcs1(p)
 
 
