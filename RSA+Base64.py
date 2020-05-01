@@ -77,7 +77,7 @@ def changepassword(_privkey):
         key = formatkey(key)
         _privkey = aes_encrypt(key, _privkey).encode()
     else:
-        _privkey = _privkey.save_pkcs1()
+        _privkey = _privkey.encode()
     with open('private.pem', 'wb') as f:
         f.write(_privkey)
 
@@ -126,6 +126,7 @@ def check_self_pem():  # 检查并生成
 
 
 check_self_pem()  # 先判断是否有公钥
+
 PublicKeyList = findpem()
 PublicKeyList.insert(0, {
                 'name': 'Yourself',
@@ -139,37 +140,21 @@ with open('private.pem', "rb") as privatefile:  # 加载自己的密钥
     if len(key) > 0:
         key = formatkey(key)
         p = aes_decrypt(key, p)
-    if input('是否更改密码(Y/N)>>>').lower() == 'y':
-        changepassword(p)
     privkey = rsa.PrivateKey.load_pkcs1(p)
 
+modes = \
+'''
+[0] 解密
+[1] 加密
+[2] 更改密码
+'''
+status = False
 
 while True:
-    Mode = int(input("选择模式：[0] 解密, [1] 加密) >>>"))
-    if Mode:
+    print(modes)
+    Mode = int(input("请选择模式>>>"))
 
-        for index in range(len(PublicKeyList)):
-            print('[{index}] {name}'.format(
-                index=index, name=PublicKeyList[index]['name']))
-        index = int(input("请选择收信人 >>>"))
-        with open(PublicKeyList[index]['path'], "rb") as thirdfile:  # 加载 别人的公钥
-            p = thirdfile.read()
-            third = rsa.PublicKey.load_pkcs1(p)
-
-        message = input('Message >>>')
-        ciphertext = prefix_m + base64.b64encode(rsa.encrypt(message.encode('utf-8'), third)) + suffix_m
-
-        if input("是否签名(Y/N)>>>").lower() == "y":
-            signature = base64.b64encode(rsa.sign(message.encode('utf-8'), privkey, encryption_method))
-            ciphertext = ciphertext + prefix_s + signature + suffix_s
-
-        with open('result.rsa', 'wb') as resultfile:
-            resultfile.write(ciphertext)
-        ciphertext = ciphertext.decode()
-        set_text(ciphertext.encode('ascii'))
-        print('已将密文输出至 result.rsa和剪切板')
-
-    else:
+    if Mode == 0:
         for index in range(len(PublicKeyList)):
             print('[{index}] {name}'.format(
                 index=index, name=PublicKeyList[index]['name']))
@@ -177,7 +162,6 @@ while True:
         with open(PublicKeyList[index]['path'], "rb") as thirdfile:  # 加载 别人的公钥
             p = thirdfile.read()
             third = rsa.PublicKey.load_pkcs1(p)
-
         text = get_text()
         temp = text.split('\n')
         if len(temp) > 2:
@@ -211,6 +195,39 @@ while True:
         else:
             print('× 没有签名')
             print("信息为："+ message)
-    
+
+    elif Mode == 1:
+        for index in range(len(PublicKeyList)):
+            print('[{index}] {name}'.format(
+                index=index, name=PublicKeyList[index]['name']))
+        index = int(input("请选择收信人 >>>"))
+        with open(PublicKeyList[index]['path'], "rb") as thirdfile:  # 加载 别人的公钥
+            p = thirdfile.read()
+            third = rsa.PublicKey.load_pkcs1(p)
+
+        message = input('Message >>>')
+        ciphertext = prefix_m + base64.b64encode(rsa.encrypt(message.encode('utf-8'), third)) + suffix_m
+
+        if input("是否签名(Y/N)>>>").lower() == "y":
+            signature = base64.b64encode(rsa.sign(message.encode('utf-8'), privkey, encryption_method))
+            ciphertext = ciphertext + prefix_s + signature + suffix_s
+
+        with open('result.rsa', 'wb') as resultfile:
+            resultfile.write(ciphertext)
+        ciphertext = ciphertext.decode()
+        set_text(ciphertext.encode('ascii'))
+        print('已将密文输出至 result.rsa和剪切板')
+
+    elif Mode == 2:
+        if status:
+            print('你已重置过密码')
+        else:
+            print('这将重置你的密码，在下一次运行时生效')
+            changepassword(privkey.save_pkcs1().decode())
+            status = True
+
+    else:
+        print('未知指令')
+
     input("回车重新开始")
     os.system('cls')
