@@ -3,4 +3,6 @@ PublicKey
 dist
 build
 __pycache__
-RSA+Base64.spec
+main.spec
+Pipfile
+Pipfile.lock

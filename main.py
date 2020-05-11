@@ -4,7 +4,7 @@ import supports
 import rsa
 
 modes = \
-'''
+'''\
 [0] 解密
 [1] 加密
 [2] 更改密码
@@ -21,7 +21,7 @@ def check_self_pem():
 
 
 def find_pubkeys():
-    key_list = supports.find('pem')
+    key_list = supports.find('.pem')
     key_list.insert(0, {
         'name': 'Yourself',
         'path': './public.pem'})
