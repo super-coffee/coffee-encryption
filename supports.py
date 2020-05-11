@@ -115,10 +115,10 @@ def load_prikey(path, password):
     with open(path, "rb") as privatefile:
         tmp = privatefile.read()
     if len(password) > 0:
-        key = formatkey(key)
-        try: tmp = aes_decrypt(key, tmp)
+        password = formatkey(password)
+        try: tmp = aes_decrypt(password, tmp)
         except Exception as E: return False, str(E)
-    else: return True, rsa.PrivateKey.load_pkcs1(tmp)
+    return True, rsa.PrivateKey.load_pkcs1(tmp)
 
 def get_text():
     win32clipboard.OpenClipboard()

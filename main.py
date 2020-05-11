@@ -37,13 +37,16 @@ if __name__ == '__main__':
                 f.write(prikey)
             with open('public.pem', 'wb') as f:
                 f.write(pubkey)
+            system('cls')
         else: exit()
 
     if not prikey:
         while True:
-            password = input('请输入密码，若没有请留空>>>')
+            password = input('请输入密码，若留空则没有密码>>>')
             status, prikey = supports.load_prikey('private.pem', password)
             if status: break
+            print('密码错误')
+    system('cls')
     pubkeys = find_pubkeys()
 
     while True:
@@ -83,3 +86,18 @@ if __name__ == '__main__':
                 resultfile.write(result)
             supports.set_text(result.encode('ascii'))
             print('已将密文输出至 result.rsa和剪切板')
+
+        elif mode == '2':
+            _prikey = prikey.save_pkcs1().decode()
+            _prikey = supports.changepassword(_prikey, input('请输入密码，若留空则删除密码>>>'))
+            with open('private.pem', 'wb') as f:
+                f.write(_prikey)
+
+        elif mode == '3': find_pubkeys()
+
+        elif mode == '4': exit()
+
+        else: print('未知指令')
+
+        input('按回车以重新开始')
+        system('cls')
