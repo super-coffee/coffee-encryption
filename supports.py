@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
-import os
+from os import mkdir, listdir
+from os.path import splitext
 import rsa
-import base64
+from base64 import b64decode, b64encode
 from win32 import win32clipboard
 from win32.lib import win32con
 from Crypto.Cipher import AES
 
 
 # ----------------------------------伪宏定义------------------------------------ #
-prefix_m = b'-----BEGIN RSA + BASE64 MESSAGE-----\n'
-suffix_m = b'\n-----END RSA + BASE64 MESSAGE-----\n'
+prefix_m = b'-----BEGIN RSA MESSAGE-----\n'
+suffix_m = b'\n-----END RSA MESSAGE-----\n'
 prefix_s = b'-----BEGIN Signature-----\n'
 suffix_s = b'\n-----END Signature-----'
 encryption_method = 'SHA-1'
-modes = \
-'''
-[0] 解密
-[1] 加密
-[2] 更改密码
-[3] 重载密钥列表
-'''
 
 
 # ---------------------------------AES Parts-------------------------------- #
@@ -47,19 +41,19 @@ def pkcs7unpadding(text):
 
 def aes_encrypt(key, content):
     key_bytes = bytes(key, encoding='utf-8')
-    iv = key_bytes
+    iv = key[0:16].encode()
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
     content_padding = pkcs7padding(content)
     encrypt_bytes = cipher.encrypt(bytes(content_padding, encoding='utf-8'))
-    result = str(base64.b64encode(encrypt_bytes), encoding='utf-8')
+    result = str(b64encode(encrypt_bytes), encoding='utf-8')
     return result
 
 
 def aes_decrypt(key, content):
     key_bytes = bytes(key, encoding='utf-8')
-    iv = key_bytes
+    iv = key[0:16].encode()
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
-    encrypt_bytes = base64.b64decode(content)
+    encrypt_bytes = b64decode(content)
     decrypt_bytes = cipher.decrypt(encrypt_bytes)
     result = str(decrypt_bytes, encoding='utf-8')
     result = pkcs7unpadding(result)
@@ -91,27 +85,25 @@ def decrypt(privkey, pubkey_t, text):
     temp = text.split('\n')
     if not len(temp) > 2: return False, -1, ''
 
-    crypto = base64.b64decode(temp[1])
+    crypto = b64decode(temp[1])
     try: message = rsa.decrypt(crypto, privkey)
     except rsa.pkcs1.DecryptionError: return False, -2, ''
     else: message = message.decode('utf-8')
 
     if len(temp) >= 5:
-        signature = base64.b64decode(temp[4])
+        signature = b64decode(temp[4])
         try: method_name = rsa.verify(message.encode('utf-8'), signature, third)
         except rsa.pkcs1.VerificationError: return True, 1, message
-        else:
-            if method_name == encryption_method: return True, 0, message
-            else: return True, 2, message
-    else: return True, 3, message
+        else: return True, 0, message
+    else: return True, 2, message
 
 
 def encrypt(message, privkey, pubkey_t, need_sig):
     third = rsa.PublicKey.load_pkcs1(pubkey_t)
-    ciphertext = prefix_m + base64.b64encode(rsa.encrypt(message.encode('utf-8'), third)) + suffix_m
+    ciphertext = prefix_m + b64encode(rsa.encrypt(message.encode('utf-8'), third)) + suffix_m
 
     if need_sig:
-        signature = base64.b64encode(rsa.sign(message.encode('utf-8'), privkey, encryption_method))
+        signature = b64encode(rsa.sign(message.encode('utf-8'), privkey, encryption_method))
         ciphertext = ciphertext + prefix_s + signature + suffix_s
 
     ciphertext = ciphertext.decode()
@@ -121,14 +113,12 @@ def encrypt(message, privkey, pubkey_t, need_sig):
 # -----------------------------------杂 项------------------------------------ #
 def load_prikey(path, password):
     with open(path, "rb") as privatefile:
-        p = privatefile.read()
+        tmp = privatefile.read()
     if len(password) > 0:
         key = formatkey(key)
-        try:
-            p = aes_decrypt(key, p)
-            return True, rsa.PrivateKey.load_pkcs1(p)
-        except Exception as E:
-            return False, str(E)
+        try: tmp = aes_decrypt(key, tmp)
+        except Exception as E: return False, str(E)
+    else: return True, rsa.PrivateKey.load_pkcs1(tmp)
 
 def get_text():
     win32clipboard.OpenClipboard()
@@ -146,14 +136,14 @@ def set_text(text):
 
 def find(suffix, path='./PublicKey/'):
     filelist = list()
-    try: files = os.listdir(path)
+    try: files = listdir(path)
     except FileNotFoundError:
-        os.mkdir(path)
-        files = os.listdir(path)
+        mkdir(path)
+        files = listdir(path)
     for filename in files:
-        if filename.endswith(suffix):
+        if splitext(filename)[1] == suffix:
             path = path + filename
-            name = os.path.splitext(filename)[0]
+            name = splitext(filename)[0]
             filelist.append({
                 'name': name,
                 'path': path
@@ -163,15 +153,15 @@ def find(suffix, path='./PublicKey/'):
 
 # ----------------------------------Debug------------------------------------#
 if __name__ == '__main__':
-    import requests
-    siteroot = 'key.kagurazakaeri.com'
-    apiroot = '/api/searchKey?mail='
-    mail = 'charlieyu4994@outlook.com'
-    req = requests.get(f'https://{siteroot}/api/searchKey?mail={mail}')
-    _json = req.json()['data']
-    name = _json['name']
-    pubkey = _json['pubkey'].replace('\r\n', '\n')
-    print([pubkey])
-    with open(f'{name}.pem', 'w') as f:
-        f.write(pubkey)
+    # import requests
+    # siteroot = 'key.kagurazakaeri.com'
+    # apiroot = '/api/searchKey?mail='
+    # mail = 'charlieyu4994@outlook.com'
+    # req = requests.get(f'https://{siteroot}/api/searchKey?mail={mail}')
+    # _json = req.json()['data']
+    # name = _json['name']
+    # pubkey = _json['pubkey'].replace('\r\n', '\n')
+    # print([pubkey])
+    # with open(f'{name}.pem', 'w') as f:
+    #     f.write(pubkey)
     pass
