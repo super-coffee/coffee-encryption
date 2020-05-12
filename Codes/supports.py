@@ -6,6 +6,8 @@ from base64 import b64decode, b64encode
 from win32 import win32clipboard
 from win32.lib import win32con
 from Crypto.Cipher import AES
+import requests
+import json
 
 
 # ----------------------------------伪宏定义------------------------------------ #
@@ -63,10 +65,8 @@ def aes_decrypt(key, content):
 def changepassword(data, password):
     if len(password) > 0:
         password = formatkey(password)
-        data = aes_encrypt(password, data).encode()
-    else:
-        data = data.encode()
-    return data
+        data = aes_encrypt(password, data)
+    return data.encode()
 
 
 # --------------------------------RSA Parts----------------------------------#
@@ -110,15 +110,41 @@ def encrypt(message, privkey, pubkey_t, need_sig):
     return True, ciphertext
 
 
+# ------------------------------CoffeeKeys Parts---------------------------- #
+def get_pubkey(site, mail):
+    apiroot = '/api/searchKey?mail='
+    try: req = requests.get(f'https://{site}/api/searchKey?mail={mail}')
+    except Exception as E: return False, str(E), ''
+    else: _json = req.json()['data']
+    name = _json['name']
+    pubkey = _json['pubkey'].replace('\r\n', '\n')
+    return name, pubkey
+
+
+# --------------------------------Config Parts------------------------------ #
+def load_cfg(path):
+    with open(path, 'r') as config_file:
+        contents = config_file.read()
+    config = json.loads(contents)
+    return config
+
+
+def gen_cfg(path, site, prikey):
+    _json = json.dumps({
+        'siteroot': site,
+        'prikey': prikey
+    }, indent=4)
+    with open(path, 'wb') as f:
+        f.write(_json.encode())
+
+
 # -----------------------------------杂 项------------------------------------ #
-def load_prikey(path, password):
-    with open(path, "rb") as privatefile:
-        tmp = privatefile.read()
+def load_prikey(prikey, password):
     if len(password) > 0:
         password = formatkey(password)
-        try: tmp = aes_decrypt(password, tmp)
+        try: prikey = aes_decrypt(password, prikey)
         except Exception as E: return False, str(E)
-    return True, rsa.PrivateKey.load_pkcs1(tmp)
+    return True, rsa.PrivateKey.load_pkcs1(prikey)
 
 def get_text():
     win32clipboard.OpenClipboard()
@@ -153,15 +179,5 @@ def find(suffix, path='./PublicKey/'):
 
 # ----------------------------------Debug------------------------------------#
 if __name__ == '__main__':
-    # import requests
-    # siteroot = 'key.kagurazakaeri.com'
-    # apiroot = '/api/searchKey?mail='
-    # mail = 'charlieyu4994@outlook.com'
-    # req = requests.get(f'https://{siteroot}/api/searchKey?mail={mail}')
-    # _json = req.json()['data']
-    # name = _json['name']
-    # pubkey = _json['pubkey'].replace('\r\n', '\n')
-    # print([pubkey])
-    # with open(f'{name}.pem', 'w') as f:
-    #     f.write(pubkey)
+    print(get_pubkey('key.kagurazakaeri.com', 'test'))
     pass

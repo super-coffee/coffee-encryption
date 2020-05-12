@@ -5,18 +5,19 @@ import rsa
 
 modes = \
 '''\
-[0] 解密
-[1] 加密
+[0] 解密文本
+[1] 加密文本
 [2] 更改密码
 [3] 重载密钥列表
+[4] 退出程序
 
 请输入模式>>>\
 '''
 
 def check_self_pem():
-    exist_pri = exists('private.pem')
+    exist_cfg = exists('Config.json')
     exist_pub = exists('public.pem')
-    if not exist_pri or not exist_pri: return False
+    if not exist_pub or not exist_cfg: return False
     else: return True
 
 
@@ -33,17 +34,19 @@ if __name__ == '__main__':
         print('你可以手动修复这个问题，或者重新生成密钥')
         if input('密钥不完整，是否重新生成(Y/N)>>>').lower() == 'y':
             prikey, pubkey = supports.genkeys(input('请输入密码，留空为没有密码>>>'))
-            with open('private.pem', 'wb') as f:
-                f.write(prikey)
+            site = input('请输入你的公钥服务器>>>')
+            supports.gen_cfg('Config.json', site, prikey.decode())
             with open('public.pem', 'wb') as f:
                 f.write(pubkey)
             system('cls')
         else: exit()
 
     if not prikey:
+        tmp = supports.load_cfg('Config.json')
+        site_root, prikey_t = tmp['siteroot'], tmp['prikey']
         while True:
             password = input('请输入密码，若留空则没有密码>>>')
-            status, prikey = supports.load_prikey('private.pem', password)
+            status, prikey = supports.load_prikey(prikey_t, password)
             if status: break
             print('密码错误')
     system('cls')
@@ -78,20 +81,19 @@ if __name__ == '__main__':
             with open(pubkeys[index]['path'], "rb") as f:  # 加载 别人的公钥
                 third = f.read()
 
-            message = input('Message >>>')
+            message = input('请输入信息>>>')
             need_sig = True if input('是否签名(Y/N)>>>').lower() == 'y' else False
 
             _, result = supports.encrypt(message, prikey, third, need_sig)
-            with open('result.rsa', 'w') as resultfile:
+            with open('result.txt', 'w') as resultfile:
                 resultfile.write(result)
             supports.set_text(result.encode('ascii'))
-            print('已将密文输出至 result.rsa和剪切板')
+            print('已将密文输出至 result.txt 和剪切板')
 
         elif mode == '2':
             _prikey = prikey.save_pkcs1().decode()
             _prikey = supports.changepassword(_prikey, input('请输入密码，若留空则删除密码>>>'))
-            with open('private.pem', 'wb') as f:
-                f.write(_prikey)
+            supports.gen_cfg('Config.json', site_root, _prikey.decode())
 
         elif mode == '3': find_pubkeys()
 
