@@ -19,13 +19,13 @@ encryption_method = 'SHA-1'
 
 
 # ---------------------------------AES Parts-------------------------------- #
-def formatkey(key):
+def formatkey(key): # 把密码填充为 16位 的整数倍
     while len(key) % 16 != 0:
         key += '0'
     return key
 
 
-def pkcs7padding(text):
+def pkcs7padding(text): # 使用 pkcs7 填充数据
     bs = AES.block_size
     length = len(text)
     bytes_length = len(bytes(text, encoding='utf-8'))
@@ -35,13 +35,13 @@ def pkcs7padding(text):
     return text + padding_text
 
 
-def pkcs7unpadding(text):
+def pkcs7unpadding(text): # 去填充
     length = len(text)
     unpadding = ord(text[length-1])
     return text[0:length-unpadding]
 
 
-def aes_encrypt(key, content):
+def aes_encrypt(key, content): # 使用 AES 加密
     key_bytes = bytes(key, encoding='utf-8')
     iv = key[0:16].encode()
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
@@ -51,7 +51,7 @@ def aes_encrypt(key, content):
     return result
 
 
-def aes_decrypt(key, content):
+def aes_decrypt(key, content): # 解密
     key_bytes = bytes(key, encoding='utf-8')
     iv = key[0:16].encode()
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
@@ -181,5 +181,4 @@ def find(suffix, path='./PublicKey/'):
 
 # ----------------------------------Debug------------------------------------#
 if __name__ == '__main__':
-    print(get_pubkey('key.kagurazakaeri.com', 'test'))
     pass
