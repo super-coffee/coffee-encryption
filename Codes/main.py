@@ -5,11 +5,9 @@ import rsa
 
 modes = \
 '''\
-[0] 解密文本
-[1] 加密文本
-[2] 更改密码
-[3] 重载密钥列表
-[4] 退出程序
+[0] 解密文本        [3] 查找公钥
+[1] 加密文本        [4] 重载密钥列表
+[2] 更改密码        [5] 退出程序 
 
 请输入模式>>>\
 '''
@@ -34,8 +32,9 @@ if __name__ == '__main__':
         print('你可以手动修复这个问题，或者重新生成密钥')
         if input('密钥不完整，是否重新生成(Y/N)>>>').lower() == 'y':
             prikey, pubkey = supports.genkeys(input('请输入密码，留空为没有密码>>>'))
-            site = input('请输入你的公钥服务器>>>')
-            supports.gen_cfg('Config.json', site, prikey.decode())
+            site_root = input('请输入你的公钥服务器>>>')
+            site_root = site_root if site_root else 'key.kagurazakaeri.com'
+            supports.gen_cfg('Config.json', site_root, prikey.decode())
             with open('public.pem', 'wb') as f:
                 f.write(pubkey)
             system('cls')
@@ -62,10 +61,13 @@ if __name__ == '__main__':
             with open(pubkeys[index]['path'], "rb") as f:
                 third = f.read()
 
-            text = supports.get_text()
+            status, text = supports.get_text()
+            if not status: print('剪切板中没有数据'); continue
             if not len(text.split('\n')) > 2:
-                with open('result.rsa', 'r') as f:
-                    text = f.read()
+                if exists('result.txt'):
+                    with open('result.txt', 'r') as f:
+                        text = f.read()
+                else: print('没有可解密的数据'); continue
             _, code, result = supports.decrypt(prikey, third, text)
             if   code == 0: print(result, '\n√ 签名有效')
             elif code == 1: print(result, '\n× 签名无效')
@@ -95,9 +97,18 @@ if __name__ == '__main__':
             _prikey = supports.changepassword(_prikey, input('请输入密码，若留空则删除密码>>>'))
             supports.gen_cfg('Config.json', site_root, _prikey.decode())
 
-        elif mode == '3': find_pubkeys()
+        elif mode == '3':
+            mail = input('请输入你要找的公钥所对应的邮箱>>>')
+            k_status, name, pubkey = supports.get_pubkey(site_root, mail)
+            if k_status:
+                with open(f'./PublicKey/{name}.pem', 'w') as f:
+                    f.write(pubkey)
+                find_pubkeys()
+            else: print('找不到对应公钥')
 
-        elif mode == '4': exit()
+        elif mode == '4': find_pubkeys()
+
+        elif mode == '5': exit()
 
         else: print('未知指令')
 

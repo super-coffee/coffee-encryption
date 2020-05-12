@@ -118,7 +118,7 @@ def get_pubkey(site, mail):
     else: _json = req.json()['data']
     name = _json['name']
     pubkey = _json['pubkey'].replace('\r\n', '\n')
-    return name, pubkey
+    return True, name, pubkey
 
 
 # --------------------------------Config Parts------------------------------ #
@@ -147,10 +147,12 @@ def load_prikey(prikey, password):
     return True, rsa.PrivateKey.load_pkcs1(prikey)
 
 def get_text():
+    status = True
     win32clipboard.OpenClipboard()
-    text = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
-    win32clipboard.CloseClipboard()
-    return text
+    try: text = win32clipboard.GetClipboardData(win32con.CF_UNICODETEXT)
+    except Exception as E: text = str(E); status = False
+    finally: win32clipboard.CloseClipboard()
+    return True if status else False, text
 
 
 def set_text(text):
