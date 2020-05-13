@@ -16,6 +16,7 @@ suffix_m = b'\n-----END RSA MESSAGE-----\n'
 prefix_s = b'-----BEGIN Signature-----\n'
 suffix_s = b'\n-----END Signature-----'
 encryption_method = 'SHA-1'
+bs = AES.block_size
 
 
 # ---------------------------------AES Parts-------------------------------- #
@@ -25,20 +26,16 @@ def formatkey(key): # 把密码填充为 16位 的整数倍
     return key
 
 
-def pkcs7padding(text): # 使用 pkcs7 填充数据
-    bs = AES.block_size
-    length = len(text)
-    bytes_length = len(bytes(text, encoding='utf-8'))
-    padding_size = length if(bytes_length == length) else bytes_length
-    padding = bs - padding_size % bs
-    padding_text = chr(padding) * padding
-    return text + padding_text
+def pkcs7padding(data): # 使用 pkcs7 填充数据
+    padding_size = bs - len(data) % bs
+    for _ in range(padding_size):
+        data = data + chr(padding_size).encode()
+    return data
 
 
-def pkcs7unpadding(text): # 去填充
-    length = len(text)
-    unpadding = ord(text[length-1])
-    return text[0:length-unpadding]
+def pkcs7unpadding(data): # 去填充
+    length = len(data)
+    return data[0:length - int(data[-1])]
 
 
 def aes_encrypt(key, content): # 使用 AES 加密
@@ -46,7 +43,7 @@ def aes_encrypt(key, content): # 使用 AES 加密
     iv = key[0:16].encode()
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
     content_padding = pkcs7padding(content)
-    encrypt_bytes = cipher.encrypt(bytes(content_padding, encoding='utf-8'))
+    encrypt_bytes = cipher.encrypt(content_padding)
     result = str(b64encode(encrypt_bytes), encoding='utf-8')
     return result
 
@@ -57,8 +54,7 @@ def aes_decrypt(key, content): # 解密
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
     encrypt_bytes = b64decode(content)
     decrypt_bytes = cipher.decrypt(encrypt_bytes)
-    result = str(decrypt_bytes, encoding='utf-8')
-    result = pkcs7unpadding(result)
+    result = pkcs7unpadding(decrypt_bytes)
     return result
 
 
@@ -66,7 +62,7 @@ def changepassword(data, password):
     if len(password) > 0:
         password = formatkey(password)
         data = aes_encrypt(password, data)
-    return data.encode()
+    return data
 
 
 # --------------------------------RSA Parts----------------------------------#
@@ -74,7 +70,7 @@ def genkeys(password, keylen=2048):
     _pubkey, _privkey = rsa.newkeys(keylen)
     if len(password) > 0:
         password = formatkey(password)
-        _privkey = aes_encrypt(password, _privkey.save_pkcs1().decode()).encode()
+        _privkey = aes_encrypt(password, _privkey.save_pkcs1()).encode()
     else:
         _privkey = _privkey.save_pkcs1()
     return _privkey, _pubkey.save_pkcs1()

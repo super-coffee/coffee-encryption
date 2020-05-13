@@ -5,9 +5,10 @@ import rsa
 
 modes = \
 '''\
-[0] 解密文本        [3] 查找公钥
-[1] 加密文本        [4] 重载密钥列表
-[2] 更改密码        [5] 退出程序 
+[0] 解密文本        [1] 加密文本
+[2] 解密文件(#TODO) [3] 加密文件(#TODO)
+[4] 更改密码        [5] 查找公钥
+[6] 重载密钥列表    [7] 退出程序 
 
 请输入模式>>>\
 '''
@@ -94,12 +95,12 @@ if __name__ == '__main__':
             supports.set_text(result.encode('ascii')) # 输出至剪切板
             print('已将密文输出至 result.txt 和剪切板')
 
-        elif mode == '2': # 重置密码
-            _prikey = prikey.save_pkcs1().decode()
+        elif mode == '4': # 重置密码
+            _prikey = prikey.save_pkcs1()
             _prikey = supports.changepassword(_prikey, input('请输入密码，若留空则删除密码>>>'))
             supports.gen_cfg('Config.json', site_root, _prikey.decode())
 
-        elif mode == '3': # 从公钥服务器查找公钥
+        elif mode == '5': # 从公钥服务器查找公钥
             mail = input('请输入你要找的公钥所对应的邮箱>>>')
             k_status, name, pubkey = supports.get_pubkey(site_root, mail)
             if k_status:
@@ -108,9 +109,9 @@ if __name__ == '__main__':
                 find_pubkeys()
             else: print('找不到对应公钥')
 
-        elif mode == '4': find_pubkeys() # 重载公钥列表
+        elif mode == '6': find_pubkeys() # 重载公钥列表
 
-        elif mode == '5': exit() # 退出程序
+        elif mode == '7': exit() # 退出程序
 
         else: print('未知指令')
 
