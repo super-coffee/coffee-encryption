@@ -6,7 +6,7 @@ import rsa
 modes = \
 '''\
 [0] 解密文本        [1] 加密文本
-[2] 解密文件(#TODO) [3] 加密文件(#TODO)
+[2] 解密文件(#TODO) [3] 加密文件(#PREVIEW)
 [4] 更改密码        [5] 查找公钥
 [6] 重载密钥列表    [7] 退出程序 
 
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                     with open('result.txt', 'r') as f:
                         text = f.read()
                 else: print('没有可解密的数据'); continue # 完全没有数据可解密
-            _, code, result = supports.decrypt(prikey, third, text)
+            _, code, result = supports.decrypt_t(prikey, third, text)
             if   code == 0: print(result, '\n√ 签名有效')
             elif code == 1: print(result, '\n× 签名无效')
             elif code == 2: print(result, '\n× 没有签名')
@@ -89,11 +89,26 @@ if __name__ == '__main__':
             message = input('请输入信息>>>') # 得到用户要加密的信息
             need_sig = True if input('是否签名(Y/N)>>>').lower() == 'y' else False # 询问用户是否签名
 
-            _, result = supports.encrypt(message, prikey, third, need_sig)
+            _, result = supports.encrypt_t(message, prikey, third, need_sig)
             with open('result.txt', 'w') as resultfile: # 写入到文件
                 resultfile.write(result)
             supports.set_text(result.encode('ascii')) # 输出至剪切板
             print('已将密文输出至 result.txt 和剪切板')
+
+        elif mode == '3':
+            for index in range(len(pubkeys)): # 打印公钥列表，并让用户选择
+                print('[{index}] {name}'.format(
+                index=index, name=pubkeys[index]['name']))
+            index = int(input("请选择收信人 >>>"))
+            with open(pubkeys[index]['path'], "rb") as f:  # 加载 别人的公钥
+                third = f.read()
+            
+            path = input('请输入文件路径>>>')
+            need_sig = True if input('是否签名(Y/N)>>>').lower() == 'y' else False # 询问用户是否签名
+
+            _, context = supports.encrypt_f('public.pem', prikey, third, True)
+            with open('result.rsa', 'wb') as f:
+                f.write(context)
 
         elif mode == '4': # 重置密码
             _prikey = prikey.save_pkcs1()

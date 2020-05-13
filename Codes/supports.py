@@ -8,15 +8,21 @@ from win32.lib import win32con
 from Crypto.Cipher import AES
 import requests
 import json
+import hashlib
+from random import sample
 
 
 # ----------------------------------伪宏定义------------------------------------ #
 prefix_m = b'-----BEGIN RSA MESSAGE-----\n'
 suffix_m = b'\n-----END RSA MESSAGE-----\n'
 prefix_s = b'-----BEGIN Signature-----\n'
-suffix_s = b'\n-----END Signature-----'
+suffix_s = b'\n-----END Signature-----\n'
+prefix_f = b'-----BEGIN AES KEY-----\n'
+suffix_f = b'\n-----END AES KEY-----\n'
 encryption_method = 'SHA-1'
 bs = AES.block_size
+keytmp = 'f5nd1N0kX7ibEJy3ULsMzKCRVrogqe6v4uHt9cSWlhY8QT2xIwBFPZGapjmADOJh\
+AJCz9wLNvq8DU5joeuWZxtYbsGcKXPQH1Rgpr26k7SliFady3nEOMI04BVTfmhUI'
 
 
 # ---------------------------------AES Parts-------------------------------- #
@@ -44,7 +50,7 @@ def aes_encrypt(key, content): # 使用 AES 加密
     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
     content_padding = pkcs7padding(content)
     encrypt_bytes = cipher.encrypt(content_padding)
-    result = str(b64encode(encrypt_bytes), encoding='utf-8')
+    result = b64encode(encrypt_bytes)
     return result
 
 
@@ -70,13 +76,13 @@ def genkeys(password, keylen=2048):
     _pubkey, _privkey = rsa.newkeys(keylen)
     if len(password) > 0:
         password = formatkey(password)
-        _privkey = aes_encrypt(password, _privkey.save_pkcs1()).encode()
+        _privkey = aes_encrypt(password, _privkey.save_pkcs1())
     else:
         _privkey = _privkey.save_pkcs1()
     return _privkey, _pubkey.save_pkcs1()
 
 
-def decrypt(privkey, pubkey_t, text):
+def decrypt_t(privkey, pubkey_t, text):
     third = rsa.PublicKey.load_pkcs1(pubkey_t)
     temp = text.split('\n')
     if not len(temp) > 2: return False, -1, ''
@@ -94,7 +100,7 @@ def decrypt(privkey, pubkey_t, text):
     else: return True, 2, message
 
 
-def encrypt(message, privkey, pubkey_t, need_sig):
+def encrypt_t(message, privkey, pubkey_t, need_sig):
     third = rsa.PublicKey.load_pkcs1(pubkey_t)
     ciphertext = prefix_m + b64encode(rsa.encrypt(message.encode('utf-8'), third)) + suffix_m
 
@@ -104,6 +110,26 @@ def encrypt(message, privkey, pubkey_t, need_sig):
 
     ciphertext = ciphertext.decode()
     return True, ciphertext
+
+
+def encrypt_f(path, prikey, pubkey_t): # preview
+    third = rsa.PublicKey.load_pkcs1(pubkey_t)
+    aes_key = ''.join(sample(keytmp, 32))
+    rsaed_aes_key = prefix_f + b64encode(rsa.encrypt(aes_key.encode('utf-8'), third)) + suffix_f
+    f = open(path, 'rb')
+    encrypted = prefix_m + aes_encrypt(aes_key, f.read()) + suffix_m
+    f.close()
+    context = rsaed_aes_key + encrypted
+    sha_1 = hashlib.sha1()
+    sha_1.update(context)
+    sig = b64encode(rsa.sign(sha_1.hexdigest().encode(), third))
+    sig = prefix_s + sig + suffix_s
+    context = context + sig
+    return True, context
+
+
+def decrypt_f(prikey, pubkey_t, data): # 犯懒暂时不想写
+    data.split('\n')
 
 
 # ------------------------------CoffeeKeys Parts---------------------------- #
