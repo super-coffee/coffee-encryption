@@ -8,7 +8,6 @@ from win32.lib import win32con
 from Crypto.Cipher import AES
 import requests
 import json
-import hashlib
 from random import sample
 
 
@@ -100,7 +99,7 @@ def decrypt_t(privkey, pubkey_t, text):
     else: return True, 2, message
 
 
-def encrypt_t(message, privkey, pubkey_t, need_sig):
+def encrypt_t(privkey, pubkey_t, message, need_sig):
     third = rsa.PublicKey.load_pkcs1(pubkey_t)
     ciphertext = prefix_m + b64encode(rsa.encrypt(message.encode('utf-8'), third)) + suffix_m
 
@@ -112,24 +111,20 @@ def encrypt_t(message, privkey, pubkey_t, need_sig):
     return True, ciphertext
 
 
-def encrypt_f(path, prikey, pubkey_t): # preview
-    third = rsa.PublicKey.load_pkcs1(pubkey_t)
+def encrypt_f(prikey, pubkey_t, path, resultname): # preview
     aes_key = ''.join(sample(keytmp, 32))
-    rsaed_aes_key = prefix_f + b64encode(rsa.encrypt(aes_key.encode('utf-8'), third)) + suffix_f
-    f = open(path, 'rb')
-    encrypted = prefix_m + aes_encrypt(aes_key, f.read()) + suffix_m
-    f.close()
-    context = rsaed_aes_key + encrypted
-    sha_1 = hashlib.sha1()
-    sha_1.update(context)
-    sig = b64encode(rsa.sign(sha_1.hexdigest().encode(), third))
-    sig = prefix_s + sig + suffix_s
-    context = context + sig
-    return True, context
-
+    with open(path, 'rb') as f:
+        e_f = aes_encrypt(aes_key, f.read())
+    with open(f'./ResultFile/{resultname}.rsa', 'wb') as f:
+        f.write(e_f)
+    _, e_aes_key = encrypt_t(prikey, pubkey_t, aes_key, True)
+    with open(f'./ResultFile/{resultname}.pas', 'w') as f:
+        f.write(e_aes_key)
+    return True
 
 def decrypt_f(prikey, pubkey_t, data): # 犯懒暂时不想写
-    data.split('\n')
+    pass
+
 
 
 # ------------------------------CoffeeKeys Parts---------------------------- #

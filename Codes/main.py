@@ -1,5 +1,5 @@
 from os.path import exists
-from os import system
+from os import mkdir, system
 import supports
 import rsa
 
@@ -28,6 +28,15 @@ def find_pubkeys(): #MARK02
     return key_list
 
 
+def print_pubkey(keylist, _prompt): # 打印公钥列表，并让用户选择
+    for _index in range(len(keylist)):
+        print(f'[{_index}] {keylist[_index]["name"]}')
+    index = int(input(_prompt))
+    with open(keylist[index]['path'], "rb") as f:
+        third = f.read()
+    return third
+
+
 if __name__ == '__main__':
     prikey = None # 定义 prikey 变量，防止之后出现访问不到 #MARK00
     if not check_self_pem(): # 检测有没有密钥和配置文件 #MARK01
@@ -41,6 +50,8 @@ if __name__ == '__main__':
                 f.write(pubkey)
             system('cls')
         else: exit()
+
+    if not exists('ResultFile'): mkdir('ResultFile')
 
     if not prikey: # 这里检测是否已加载私钥，第一次运行创建密钥后会加载私钥 #MARK00
         tmp = supports.load_cfg('Config.json')
@@ -57,12 +68,7 @@ if __name__ == '__main__':
     while True: # 主循环，程序正式开始运行
         mode = input(modes)
         if mode == '0': # 解密
-            for index in range(len(pubkeys)): # 打印公钥列表，并让用户选择
-                print('[{index}] {name}'.format(
-                index=index, name=pubkeys[index]['name']))
-            index = int(input("请选择发件人>>>"))
-            with open(pubkeys[index]['path'], "rb") as f:
-                third = f.read()
+            third = print_pubkey(pubkeys, '请选择发信人 >>>')
 
             status, text = supports.get_text() # 尝试从剪切板读取密文
             if not status: print('剪切板中没有数据'); continue
@@ -79,36 +85,34 @@ if __name__ == '__main__':
             elif code == -2: print('无法解密，这可能不是给你的消息')
 
         elif mode == '1': # 加密
-            for index in range(len(pubkeys)): # 打印公钥列表，并让用户选择
-                print('[{index}] {name}'.format(
-                index=index, name=pubkeys[index]['name']))
-            index = int(input("请选择收信人 >>>"))
-            with open(pubkeys[index]['path'], "rb") as f:  # 加载 别人的公钥
-                third = f.read()
+            third = print_pubkey(pubkeys, '请选择收信人 >>>')
 
             message = input('请输入信息>>>') # 得到用户要加密的信息
             need_sig = True if input('是否签名(Y/N)>>>').lower() == 'y' else False # 询问用户是否签名
 
-            _, result = supports.encrypt_t(message, prikey, third, need_sig)
-            with open('result.txt', 'w') as resultfile: # 写入到文件
+            _, result = supports.encrypt_t(prikey, third, message, need_sig)
+            with open('./ResultFile/result.txt', 'w') as resultfile: # 写入到文件
                 resultfile.write(result)
             supports.set_text(result.encode('ascii')) # 输出至剪切板
             print('已将密文输出至 result.txt 和剪切板')
 
-        elif mode == '3':
-            for index in range(len(pubkeys)): # 打印公钥列表，并让用户选择
-                print('[{index}] {name}'.format(
-                index=index, name=pubkeys[index]['name']))
-            index = int(input("请选择收信人 >>>"))
-            with open(pubkeys[index]['path'], "rb") as f:  # 加载 别人的公钥
-                third = f.read()
+        elif mode == '2':
+            third = print_pubkey(pubkeys, '请选择发信人 >>>')
             
-            path = input('请输入文件路径>>>')
-            need_sig = True if input('是否签名(Y/N)>>>').lower() == 'y' else False # 询问用户是否签名
+            f = open(input('请输入文件路径>>>'), 'rb')
+            data = f.read()
+            f.close()
 
-            _, context = supports.encrypt_f('public.pem', prikey, third, True)
-            with open('result.rsa', 'wb') as f:
-                f.write(context)
+            supports.decrypt_f(prikey, third, data)
+
+        elif mode == '3':
+            third = print_pubkey(pubkeys, '请选择收信人 >>>')
+
+            path = input('请输入文件路径>>>')
+            name = input('请输入生成文件名称>>>')
+
+            if exists(path): supports.encrypt_f(prikey, third, path, name)
+            else: print('文件不存在')
 
         elif mode == '4': # 重置密码
             _prikey = prikey.save_pkcs1()

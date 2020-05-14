@@ -6,3 +6,6 @@ __pycache__
 main.spec
 Pipfile
 Pipfile.lock
+Codes/Config.json
+Codes/public.pem
+ResultFile
