@@ -30,12 +30,15 @@ def find_pubkeys(): #MARK02
 
 
 def print_pubkey(keylist, _prompt): # 打印公钥列表，并让用户选择
-    for _index in range(len(keylist)):
-        print(f'[{_index}] {keylist[_index]["name"]}')
-    index = int(input(_prompt))
-    with open(keylist[index]['path'], "rb") as f:
-        third = f.read()
-    return third
+    while True:
+        for _index in range(len(keylist)):
+            print(f'[{_index}] {keylist[_index]["name"]}')
+        try:
+            index = int(input(_prompt))
+            with open(keylist[index]['path'], "rb") as f:
+                third = f.read()
+        except Exception as E: input('输入错误，按回车以继续'); system('cls')
+        else: return third
 
 
 if __name__ == '__main__':
@@ -100,13 +103,15 @@ if __name__ == '__main__':
             third = print_pubkey(pubkeys, '请选择发信人 >>>')
             filename = input('请输入文件名>>>')
 
-            code, msg = supports.decrypt_f(prikey, third, filename)
-            if   code == 0: print(f'输出文件名为：{msg}', '\n√ 签名有效')
-            elif code == 1: print(f'输出文件名为：{msg}', '\n× 签名无效')
-            elif code == 2: print(f'输出文件名为：{msg}', '\n× 没有签名')
-            elif code == -1: print('无效密文')
-            elif code == -2: print('无法解密，这可能不是给你的消息')
-            elif code == -3: print('文件损坏')
+            if exists(f'./ResatltFile/{filename}.rsa') and exists(f'./ResatltFile/{filename}.pas'):
+                code, msg = supports.decrypt_f(prikey, third, filename)
+                if   code == 0: print(f'输出文件名为：{msg}', '\n√ 签名有效')
+                elif code == 1: print(f'输出文件名为：{msg}', '\n× 签名无效')
+                elif code == 2: print(f'输出文件名为：{msg}', '\n× 没有签名')
+                elif code == -1: print('无效密文')
+                elif code == -2: print('无法解密，这可能不是给你的消息')
+                elif code == -3: print('文件损坏')
+            else: print('文件不存在')
 
         elif mode == '3':
             third = print_pubkey(pubkeys, '请选择收信人 >>>')
