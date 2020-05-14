@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from os import mkdir, listdir
-from os.path import splitext
+from os.path import splitext, basename
 import rsa
 from base64 import b64decode, b64encode
 from win32 import win32clipboard
@@ -84,19 +84,19 @@ def genkeys(password, keylen=2048):
 def decrypt_t(privkey, pubkey_t, text):
     third = rsa.PublicKey.load_pkcs1(pubkey_t)
     temp = text.split('\n')
-    if not len(temp) > 2: return False, -1, ''
+    if not len(temp) > 2: return -1, ''
 
     crypto = b64decode(temp[1])
     try: message = rsa.decrypt(crypto, privkey)
-    except rsa.pkcs1.DecryptionError: return False, -2, ''
+    except rsa.pkcs1.DecryptionError: return -2, ''
     else: message = message.decode('utf-8')
 
     if len(temp) >= 5:
         signature = b64decode(temp[4])
         try: method_name = rsa.verify(message.encode('utf-8'), signature, third)
-        except rsa.pkcs1.VerificationError: return True, 1, message
-        else: return True, 0, message
-    else: return True, 2, message
+        except rsa.pkcs1.VerificationError: return 1, message
+        else: return 0, message
+    else: return 2, message
 
 
 def encrypt_t(privkey, pubkey_t, message, need_sig):
@@ -117,14 +117,24 @@ def encrypt_f(prikey, pubkey_t, path, resultname): # preview
         e_f = aes_encrypt(aes_key, f.read())
     with open(f'./ResultFile/{resultname}.rsa', 'wb') as f:
         f.write(e_f)
-    _, e_aes_key = encrypt_t(prikey, pubkey_t, aes_key, True)
+    _, data = encrypt_t(prikey, pubkey_t, f'{aes_key}&^&{basename(path)}', True)
     with open(f'./ResultFile/{resultname}.pas', 'w') as f:
-        f.write(e_aes_key)
+        f.write(data)
     return True
 
-def decrypt_f(prikey, pubkey_t, data): # 犯懒暂时不想写
-    pass
-
+def decrypt_f(prikey, pubkey_t, filename):
+    with open(f'./ResultFile/{filename}.pas', 'r') as f:
+        code, data = decrypt_t(prikey, pubkey_t, f.read())
+    if code < 0: return code, ''
+    aes_key, _filename = data.split('&^&')[0:2]
+    try:
+        with open(f'./ResultFile/{filename}.rsa', 'rb') as f:
+            f_data = aes_decrypt(aes_key, f.read())
+    except: return -3, ''
+    else:
+        with open(f'./ResultFile/{_filename}', 'wb') as f:
+            f.write(f_data)
+        return code, _filename
 
 
 # ------------------------------CoffeeKeys Parts---------------------------- #

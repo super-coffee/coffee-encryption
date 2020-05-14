@@ -6,7 +6,7 @@ import rsa
 modes = \
 '''\
 [0] 解密文本        [1] 加密文本
-[2] 解密文件(#TODO) [3] 加密文件(#PREVIEW)
+[2] 解密文件(#PRE)  [3] 加密文件(#PRE)
 [4] 更改密码        [5] 查找公钥
 [6] 重载密钥列表    [7] 退出程序 
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
                     with open('result.txt', 'r') as f:
                         text = f.read()
                 else: print('没有可解密的数据'); continue # 完全没有数据可解密
-            _, code, result = supports.decrypt_t(prikey, third, text)
+            code, result = supports.decrypt_t(prikey, third, text)
             if   code == 0: print(result, '\n√ 签名有效')
             elif code == 1: print(result, '\n× 签名无效')
             elif code == 2: print(result, '\n× 没有签名')
@@ -86,7 +86,6 @@ if __name__ == '__main__':
 
         elif mode == '1': # 加密
             third = print_pubkey(pubkeys, '请选择收信人 >>>')
-
             message = input('请输入信息>>>') # 得到用户要加密的信息
             need_sig = True if input('是否签名(Y/N)>>>').lower() == 'y' else False # 询问用户是否签名
 
@@ -98,16 +97,18 @@ if __name__ == '__main__':
 
         elif mode == '2':
             third = print_pubkey(pubkeys, '请选择发信人 >>>')
-            
-            f = open(input('请输入文件路径>>>'), 'rb')
-            data = f.read()
-            f.close()
+            filename = input('请输入文件名>>>')
 
-            supports.decrypt_f(prikey, third, data)
+            code, msg = supports.decrypt_f(prikey, third, filename)
+            if   code == 0: print(f'输出文件名为：{msg}', '\n√ 签名有效')
+            elif code == 1: print(f'输出文件名为：{msg}', '\n× 签名无效')
+            elif code == 2: print(f'输出文件名为：{msg}', '\n× 没有签名')
+            elif code == -1: print('无效密文')
+            elif code == -2: print('无法解密，这可能不是给你的消息')
+            elif code == -3: print('文件损坏')
 
         elif mode == '3':
             third = print_pubkey(pubkeys, '请选择收信人 >>>')
-
             path = input('请输入文件路径>>>')
             name = input('请输入生成文件名称>>>')
 
