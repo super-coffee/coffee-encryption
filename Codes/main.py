@@ -1,6 +1,7 @@
 from os.path import exists
 from os import mkdir, system
 import supports
+from sys import exit
 import rsa
 
 modes = \

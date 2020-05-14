@@ -142,10 +142,12 @@ def get_pubkey(site, mail):
     apiroot = '/api/searchKey?mail='
     try: req = requests.get(f'https://{site}/api/searchKey?mail={mail}')
     except Exception as E: return False, str(E), ''
-    else: _json = req.json()['data']
-    name = _json['name']
-    pubkey = _json['pubkey'].replace('\r\n', '\n')
-    return True, name, pubkey
+    else: status, data = req.json()['status'], req.json()['data']
+    if status:
+        name = data['name']
+        pubkey = data['pubkey'].replace('\r\n', '\n')
+        return True, name, pubkey
+    else: return False, '', ''
 
 
 # --------------------------------Config Parts------------------------------ #
