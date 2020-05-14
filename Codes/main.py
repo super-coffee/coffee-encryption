@@ -126,10 +126,10 @@ if __name__ == '__main__':
             if k_status:
                 with open(f'./PublicKey/{name}.pem', 'w') as f:
                     f.write(pubkey)
-                find_pubkeys()
+                pubkeys = find_pubkeys() 
             else: print('找不到对应公钥')
 
-        elif mode == '6': find_pubkeys() # 重载公钥列表
+        elif mode == '6': pubkeys = find_pubkeys() # 重载公钥列表
 
         elif mode == '7': exit() # 退出程序
 
