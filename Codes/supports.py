@@ -33,9 +33,7 @@ def formatkey(key): # 把密码填充为 16位 的整数倍
 
 def pkcs7padding(data): # 使用 pkcs7 填充数据
     padding_size = bs - len(data) % bs
-    for _ in range(padding_size):
-        data = data + chr(padding_size).encode()
-    return data
+    return data + chr(padding_size).encode() * padding_size
 
 
 def pkcs7unpadding(data): # 去填充
@@ -111,17 +109,6 @@ def encrypt_t(privkey, pubkey_t, message, need_sig):
     return True, ciphertext
 
 
-def encrypt_f(prikey, pubkey_t, path, resultname): # preview
-    aes_key = ''.join(sample(keytmp, 32))
-    with open(path, 'rb') as f:
-        e_f = aes_encrypt(aes_key, f.read())
-    with open(f'./ResultFile/{resultname}.rsa', 'wb') as f:
-        f.write(e_f)
-    _, data = encrypt_t(prikey, pubkey_t, f'{aes_key}&^&{basename(path)}', True)
-    with open(f'./ResultFile/{resultname}.pas', 'w') as f:
-        f.write(data)
-    return True
-
 def decrypt_f(prikey, pubkey_t, filename):
     with open(f'./ResultFile/{filename}.pas', 'r') as f:
         code, data = decrypt_t(prikey, pubkey_t, f.read())
@@ -135,6 +122,18 @@ def decrypt_f(prikey, pubkey_t, filename):
         with open(f'./ResultFile/{_filename}', 'wb') as f:
             f.write(f_data)
         return code, _filename
+
+
+def encrypt_f(prikey, pubkey_t, path, resultname): # preview
+    aes_key = ''.join(sample(keytmp, 32))
+    with open(path, 'rb') as f:
+        e_f = aes_encrypt(aes_key, f.read())
+    with open(f'./ResultFile/{resultname}.rsa', 'wb') as f:
+        f.write(e_f)
+    _, data = encrypt_t(prikey, pubkey_t, f'{aes_key}&^&{basename(path)}', True)
+    with open(f'./ResultFile/{resultname}.pas', 'w') as f:
+        f.write(data)
+    return True
 
 
 # ------------------------------CoffeeKeys Parts---------------------------- #
@@ -158,10 +157,13 @@ def load_cfg(path):
     return config
 
 
-def gen_cfg(path, site, prikey):
+def gen_cfg(path, site, prikey, pubkey_path, result_path):
     _json = json.dumps({
         'siteroot': site,
-        'prikey': prikey
+        'pubkeys': pubkey_path,
+        'results': result_path,
+        'defaultkey': prikey,
+        'prikeys': []
     }, indent=4)
     with open(path, 'wb') as f:
         f.write(_json.encode())
@@ -191,7 +193,7 @@ def set_text(text):
     win32clipboard.CloseClipboard()
 
 
-def find(suffix, path='./PublicKey/'):
+def find(suffix, path):
     filelist = list()
     try: files = listdir(path)
     except FileNotFoundError:
