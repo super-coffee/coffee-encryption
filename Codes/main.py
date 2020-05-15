@@ -2,14 +2,15 @@ from os.path import exists
 from os import mkdir, system
 import supports
 from sys import exit
+import json
 
 modes = \
 '''\
 [0] 解密文本        [1] 加密文本
 [2] 解密文件        [3] 加密文件
-[4] 更改密码        [5] 查找公钥
-[6] 重载密钥列表    [7] 修改配置(#TODE)
-[8] 增加私钥(#TODO) [9] 退出程序
+[4] 查找公钥        [5] 重载密钥列表
+[6] 修改配置        [7] 增加私钥(#TODO)
+[8] 退出程序
 
 请输入模式>>>\
 '''
@@ -123,12 +124,7 @@ if __name__ == '__main__':
             if exists(path): supports.encrypt_f(prikey, third, path, name)
             else: print('文件不存在')
 
-        elif mode == '4': # 重置密码
-            _prikey = prikey.save_pkcs1()
-            _prikey = supports.changepassword(_prikey, input('请输入密码，若留空则删除密码>>>'))
-            supports.gen_cfg('Config.json', site_root, _prikey.decode())
-
-        elif mode == '5': # 从公钥服务器查找公钥
+        elif mode == '4': # 从公钥服务器查找公钥
             mail = input('请输入你要找的公钥所对应的邮箱>>>')
             k_status, name, pubkey = supports.get_pubkey(site_root, mail)
             if k_status:
@@ -137,9 +133,25 @@ if __name__ == '__main__':
                 pubkeys = find_pubkeys() 
             else: print('找不到对应公钥')
 
-        elif mode == '6': pubkeys = find_pubkeys() # 重载公钥列表
+        elif mode == '5': pubkeys = find_pubkeys() # 重载公钥列表
 
-        elif mode == '9': exit() # 退出程序
+        elif mode == '6':
+            if input('是否更改公钥服务器(Y/N)>>>').lower() == 'y':
+                site_root_t = input('请输入公钥服务器地址>>>') 
+                cfg['siteroot'] = site_root_t if site_root_t else site_root
+            if input('是否修改密码(Y/N)>>>').lower() == 'y':
+                _prikey = supports.changepassword(prikey.save_pkcs1(), input('请输入密码，若留空则删除密码>>>'))
+                cfg['defaultkey'] = _prikey.decode()
+            if input('是否修改公钥路径(Y/N)>>>').lower() == 'y':
+                _dir = input('请输入路径>>>')
+                cfg['pubkeys'] = _dir if not dir.endswith('/') else _dir.rstrip('/')
+            if input('是否修改输出路径(Y/N)>>>').lower() == 'y':
+                _dir = input('请输入路径>>>')
+                cfg['results'] = _dir if not dir.endswith('/') else _dir.rstrip('/')
+            with open('Config.json', 'w') as f:
+                f.write(json.dumps(cfg, indent=4))
+
+        elif mode == '8': exit() # 退出程序
 
         else: print('未知指令')
 
