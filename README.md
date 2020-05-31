@@ -9,7 +9,7 @@
 从 Releases 页面下载
 
 # 食用说明
-https://blog.charlieyu4994.cn/post/encryptedcoffee/
+~~https://blog.charlieyu4994.cn/post/encryptedcoffee/~~ （已过期）
 
 # 注意
 本工具仅在Windows平台可用
