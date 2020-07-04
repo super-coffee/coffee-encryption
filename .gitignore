@@ -9,3 +9,4 @@ Pipfile.lock
 Codes/Config.json
 Codes/public.pem
 ResultFile
+requirements.txt
